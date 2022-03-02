@@ -1,0 +1,26 @@
+/**
+ * All of the CSS for your admin-specific functionality should be
+ * included in this file.
+ */
+
+.status-label {
+    margin-left: 20px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+#collapseThree .alert,
+#collapseThree .sync-process,
+#collapseThree .progress {
+    display: none;
+}
+
+#collapseThree .progress-bar {
+    height: 100%;
+}
+
+.p_end_at {
+    display: none;
+}
