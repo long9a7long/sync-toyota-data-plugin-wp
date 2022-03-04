@@ -3,6 +3,7 @@
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/connection-toyota-data.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/product-model.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/product.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'includes/entities/product/product.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/request-list-base-model.php';
 
 
@@ -91,7 +92,7 @@ class Sync_Toyota_Data_Admin
 		 * class.
 		 */
 
-		$valid_pages = array("sync-toyota-products","sync-toyota-models");
+		$valid_pages = array("sync-toyota-products", "sync-toyota-models");
 		$page = isset($_REQUEST['page']) ? $_REQUEST['page'] : "";
 		if (in_array($page, $valid_pages)) {
 			wp_enqueue_style("bootstrap", SYNC_TOYOTA_DATA_PLUGIN_URL . 'assets/css/boostraps.min.css', array(), $this->version, 'all');
@@ -119,7 +120,7 @@ class Sync_Toyota_Data_Admin
 		 * class.
 		 */
 
-		$valid_pages = array("sync-toyota-products","sync-toyota-models");
+		$valid_pages = array("sync-toyota-products", "sync-toyota-models");
 		$page = isset($_REQUEST['page']) ? $_REQUEST['page'] : "";
 		if (in_array($page, $valid_pages)) {
 			wp_enqueue_script("bootstrap", SYNC_TOYOTA_DATA_PLUGIN_URL . 'assets/js/boostraps.min.js', array('jquery'), $this->version, false);
@@ -208,7 +209,7 @@ class Sync_Toyota_Data_Admin
 		$productMD->updateTotalCountProductModel($total_records);
 		$size_per_step = $this->get_meta_sync_value('size_per_step_model_prod_sync');
 		ob_start();
-		include_once(SYNC_TOYOTA_DATA_PLUGIN_PATH."admin/partials/sync-toyota-data-admin-model-prod.php");
+		include_once(SYNC_TOYOTA_DATA_PLUGIN_PATH . "admin/partials/sync-toyota-data-admin-model-prod.php");
 		$template = ob_get_contents();
 		ob_end_clean();
 		echo $template;
@@ -224,10 +225,15 @@ class Sync_Toyota_Data_Admin
 		$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
 		$productD = new ProductData($connectionData);
 		$total_records = $productD->getTotalCount();
+		// $total_records = $productD->getList(new RequestListBaseModel(null, null, 0, 40));
+		// echo "<pre>";
+		// print_r($total_records);
+		// echo "</pre>";
+
 		$productD->updateTotalCountProductModel($total_records);
 		$size_per_step = $this->get_meta_sync_value('size_per_step_product_sync');
 		ob_start();
-		include_once(SYNC_TOYOTA_DATA_PLUGIN_PATH."admin/partials/sync-toyota-data-admin-product.php");
+		include_once(SYNC_TOYOTA_DATA_PLUGIN_PATH . "admin/partials/sync-toyota-data-admin-product.php");
 		$template = ob_get_contents();
 		ob_end_clean();
 		echo $template;
@@ -316,15 +322,15 @@ class Sync_Toyota_Data_Admin
 					"data" => $size,
 				);
 			}
-			
+
 			echo json_encode($result);
-		} catch(Exception $e){
+		} catch (Exception $e) {
 			echo json_encode(array(
 				"status" => 0,
 				"message" => "Error!",
 			));
 		}
-		
+
 		wp_die();
 	}
 
@@ -335,24 +341,24 @@ class Sync_Toyota_Data_Admin
 			$step = isset($_POST['step']) ? $_POST['step'] : 0;
 			$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
 			$productMD = new ProductModelData($connectionData);
-			
-			if($step == 0) {
+
+			if ($step == 0) {
 				$result = array(
 					"status" => 0,
 					"message" => "Invalid data",
 				);
 			} else {
-				if($step ==1 ) {
+				if ($step == 1) {
 					$now = new DateTime();
 					$productMD->update_start_at($now->format('Y-m-d H:i:s'));
 				}
 				$size_per_step = $productMD->get_size_per_step();
 				$total_records = $productMD->get_total_records();
 
-				$data_synced = $this->sync_model_prod($productMD, $size_per_step,$step, $total_records);
-				
-				$total_step = ceil($total_records/$size_per_step);
-				if($step == $total_step ) {
+				$data_synced = $this->sync_model_prod($productMD, $size_per_step, $step, $total_records);
+
+				$total_step = ceil($total_records / $size_per_step);
+				if ($step == $total_step) {
 					$now = new DateTime();
 					$productMD->update_end_at($now->format('Y-m-d H:i:s'));
 				}
@@ -360,36 +366,35 @@ class Sync_Toyota_Data_Admin
 					"status" => 1,
 					"message" => "Success",
 					"data" => [
-						"step" => $step+1,
+						"step" => $step + 1,
 						"total_step" => $total_step,
 						"model_prods" => $data_synced,
 					],
 				);
 			}
-			
+
 			echo json_encode($result);
-		} catch(Exception $e){
+		} catch (Exception $e) {
 			echo json_encode(array(
 				"status" => 0,
 				"message" => "Error!",
 			));
 		}
-		
-		wp_die();
-		
 
+		wp_die();
 	}
 
-	public function sync_model_prod($productMD, $size_per_step, $step, $total_records) {
+	public function sync_model_prod($productMD, $size_per_step, $step, $total_records)
+	{
 		$syncedCus = array();
-		$baseReq = new RequestListBaseModel(null, null, $size_per_step*($step-1), $size_per_step);
-		
+		$baseReq = new RequestListBaseModel(null, null, $size_per_step * ($step - 1), $size_per_step);
+
 		$results = $productMD->getList($baseReq);
-		if($results) {
+		if ($results) {
 			foreach ($results as $key => $value) {
-				$modelProd = new ModelProduct($value->modelId, $value->modelName );
+				$modelProd = new ModelProduct($value->modelId, $value->modelName);
 				$modelProdDb = $productMD->getDetail($value->modelId);
-				if($modelProdDb) {
+				if ($modelProdDb) {
 					$productMD->update($modelProd);
 				} else {
 					$productMD->create($modelProd);
@@ -408,8 +413,106 @@ class Sync_Toyota_Data_Admin
 	 */
 	public function sync_product($productMD, $size_per_step, $step, $total_records)
 	{
-		
+		$syncedCus = array();
+		$baseReq = new RequestListBaseModel(null, null, $size_per_step * ($step - 1), $size_per_step);
+		$mapVehicleImage = function($vehicleImages): VehicleImage
+		{
+			return new VehicleImage(
+				$vehicleImages->imageUrl,
+				$vehicleImages->colorId,
+				$vehicleImages->colorName,
+				$vehicleImages->hexcode,
+				$vehicleImages->price
+			);
+		};
+
+		$mapInternalColorImage = function($internalColorImages): InternalColorImage
+		{
+			return new InternalColorImage(
+				$internalColorImages->imageUrl,
+				$internalColorImages->iColorId,
+				$internalColorImages->iColorName,
+				$internalColorImages->iHexcode
+			);
+		};
+
+		$mapDetailOverviewProd = function($detail): DetailOverviewProduct
+		{
+			return new DetailOverviewProduct(
+				$detail->detailId,
+				$detail->detailName,
+				$detail->detailValue
+			);
+		};
+	
+
+		$mapGroupOverviewProd = function($group): GroupOverviewProduct
+		{
+			return new GroupOverviewProduct(
+				$group->groupId,
+				$group->groupName,
+				$group->groupValue,
+				array_map(
+					$mapDetailOverviewProd,
+					$group->detail
+				)
+			);
+		};
+
+		$mapOverview = function($overview): OverviewProduct
+		{
+			return new OverviewProduct(
+				$overview->bigGroupId,
+				$overview->bigGroupName,
+				array_map(
+					$mapGroupOverviewProd,
+					$overview->group
+				),
+			);
+		};
+
+		$results = $productMD->getList($baseReq);
+		if ($results) {
+			foreach ($results as $key => $value) {
+				$product = new Product(
+					$value->id,
+					$value->banner,
+					null,
+					$value->gradeId,
+					$value->commercialName,
+					$value->slogan,
+					$value->img45,
+					$value->img90,
+					$value->imgDetail,
+					$value->description,
+					array_map(
+						$mapVehicleImage,
+						$value->vehicleImages
+					),
+					array_map(
+						$mapInternalColorImage,
+						$value->internalColorImages
+					),
+					array_map(
+						$mapOverview,
+						$value->overview
+					),
+				);
+				$product->setModelCarByID($value->modelId);
+				$productDb = $productMD->getDetail($value->id);
+				if ($productDb) {
+					$productMD->update($product);
+				} else {
+					$productMD->create($product);
+				}
+				array_push($syncedCus, $product);
+			}
+		}
+		unset($results);
+		return $syncedCus;
 	}
+
+
 
 	public function process_ajax_get_total_records_product()
 	{
@@ -455,15 +558,15 @@ class Sync_Toyota_Data_Admin
 					"data" => $size,
 				);
 			}
-			
+
 			echo json_encode($result);
-		} catch(Exception $e){
+		} catch (Exception $e) {
 			echo json_encode(array(
 				"status" => 0,
 				"message" => "Error!",
 			));
 		}
-		
+
 		wp_die();
 	}
 
@@ -479,24 +582,24 @@ class Sync_Toyota_Data_Admin
 			$step = isset($_POST['step']) ? $_POST['step'] : 0;
 			$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
 			$productMD = new ProductData($connectionData);
-			
-			if($step == 0) {
+
+			if ($step == 0) {
 				$result = array(
 					"status" => 0,
 					"message" => "Invalid data",
 				);
 			} else {
-				if($step ==1 ) {
+				if ($step == 1) {
 					$now = new DateTime();
 					$productMD->update_start_at($now->format('Y-m-d H:i:s'));
 				}
 				$size_per_step = $productMD->get_size_per_step();
 				$total_records = $productMD->get_total_records();
 
-				$data_synced = $this->sync_product($productMD, $size_per_step,$step, $total_records);
-				
-				$total_step = ceil($total_records/$size_per_step);
-				if($step == $total_step ) {
+				$data_synced = $this->sync_product($productMD, $size_per_step, $step, $total_records);
+
+				$total_step = ceil($total_records / $size_per_step);
+				if ($step == $total_step) {
 					$now = new DateTime();
 					$productMD->update_end_at($now->format('Y-m-d H:i:s'));
 				}
@@ -504,28 +607,29 @@ class Sync_Toyota_Data_Admin
 					"status" => 1,
 					"message" => "Success",
 					"data" => [
-						"step" => $step+1,
+						"step" => $step + 1,
 						"total_step" => $total_step,
-						"model_prods" => $data_synced,
+						"prods" => $data_synced,
 					],
 				);
 			}
-			
+
 			echo json_encode($result);
-		} catch(Exception $e){
+		} catch (Exception $e) {
 			echo json_encode(array(
 				"status" => 0,
 				"message" => "Error!",
 			));
 		}
-		
+
 		wp_die();
 	}
 
-	public function get_meta_sync_value($meta_key) {
+	public function get_meta_sync_value($meta_key)
+	{
 		global $wpdb;
 		$kq = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}sync_toyota_info WHERE `meta_key`='{$meta_key}'");
-		if($kq) return (int)$kq->meta_value;
+		if ($kq) return (int)$kq->meta_value;
 		return 0;
 	}
 }

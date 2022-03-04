@@ -25,6 +25,8 @@ class ProductModelData extends BaseModel {
 
     }
 
+	
+
     public function create($productModel ) {
         global $wpdb;
 		$tableName = TableName::$modelCar;
