@@ -6,6 +6,9 @@ class Constants
     private $tokenAuth = "api/TokenAuth/Authenticate";
     private $modelProd = "api/services/app/DataHubApi/GetListModelProduct";
     private $products = "api/services/app/DataHubApi/GetVehicleProductOverview";
+    private $vehicleProductLibraryImage = "api/services/app/DataHubApi/GetListVehicleProductLibraryImage";
+    
+
 
     static function instance()
     {
@@ -33,6 +36,11 @@ class Constants
     public function getProducts()
     {
         return $this->baseUrl . $this->products;
+    }
+
+    public function getVehicleProductLibraryImage()
+    {
+        return $this->baseUrl . $this->vehicleProductLibraryImage;
     }
 
     public function downloadAImage($url)

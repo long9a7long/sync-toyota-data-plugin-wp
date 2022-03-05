@@ -48,6 +48,13 @@ class ProductData extends BaseModel
     return $res->result->items;
   }
 
+  public function getListImage(RequestListBaseModel $baseReq) {
+    $curl = new CustomCurl();
+    $url = Constants::instance()->getVehicleProductLibraryImage();
+    $res = $curl->get($this->connection, $url, $baseReq->getParamsModel());
+    return $res->result->items;
+  }
+
   public function getTotalCount()
   {
 
@@ -282,20 +289,25 @@ class ProductData extends BaseModel
       'mau_car_chinh' => 0,
       'xe_cu'         => 0,
       'header_text'   => $product->slogan,
-      // 'loai_dong_co'  => $product->modelCar->modelName
     );
-    if ($dongXe && $dongXe != null) {
-      $my_post['post_category'] = array($dongXe['cateID']);
-    }
+    
+    $metaInputArr = array();
 
     $metaArr['gia_tham_khao'] = $product->vehicleImages[0] ? $product->vehicleImages[0]->price : 0;
 
     $metaArr['anh_cover'] = Constants::instance()->downloadAImage($product->banner);
+    $metaInputArr['anh_cover'] = $product->banner;
     $metaArr['anh_gioi_thieu'] = Constants::instance()->downloadAImage($product->imgDetail);
+    $metaInputArr['anh_gioi_thieu'] = $product->imgDetail;
     $metaArr['anh_dai_dien_2'] = Constants::instance()->downloadAImage($product->img45);
+    $metaInputArr['anh_dai_dien_2'] = $product->img45;
 
     $metaArr = array_merge($metaArr, $this->metaProdValues($product->overview));
-    // $my_post['meta_input'] = $metaArr;
+    $metaInputArr['anh_dai_dien'] = $product->img90;
+    $metaInputArr['modelId'] = $product->modelCar->getModelId();
+    $metaInputArr['gradeId'] = $product->gradeId;
+
+    $my_post['meta_input'] = $metaInputArr;
 
 
 
@@ -303,7 +315,13 @@ class ProductData extends BaseModel
     $postID = wp_insert_post($my_post);
 
     $attachment_id = Constants::instance()->downloadAImage($product->img90);
-    set_post_thumbnail( $postID, $attachment_id );
+    
+    set_post_thumbnail($postID, $attachment_id);
+
+    if ($dongXe && $dongXe != null) {
+      // $my_post['taxonomies'] = array($dongXe['cateName']);
+      wp_set_post_terms($postID, array($dongXe['cateId']), 'dong_xe');
+    }
 
     $this->updateMetaField($metaArr, $postID);
 
@@ -311,15 +329,26 @@ class ProductData extends BaseModel
       $row = array(
         'mau' => $value->hexcode,
         'ten_mau'   => $value->colorName,
-        'anh_xe'  => $value->imageUrl,
+        'anh_xe'  => Constants::instance()->downloadAImage($value->imageUrl),
         'model_price' => $value->price,
-    );
-    
-    add_row('car_color_ngoai_that', $row, $postID);
+      );
+
+      add_row('car_color_ngoai_that', $row, $postID);
+    }
+    foreach ($product->internalColorImages as $key => $value) {
+      $row = array(
+        'mau' => $value->hexcode,
+        'ten_mau'   => $value->colorName,
+        'anh_xe'  => Constants::instance()->downloadAImage($value->imageUrl),
+        'model_price' => $value->price,
+      );
+
+      add_row('car_color_noi_that', $row, $postID);
     }
   }
 
-  public function updateMetaField($metaArr, $postId) {
+  public function updateMetaField($metaArr, $postId)
+  {
     foreach ($metaArr as $key => $value) {
       update_field($key, $value, $postId);
     }

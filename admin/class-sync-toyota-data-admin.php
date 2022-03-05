@@ -4,6 +4,7 @@ require_once plugin_dir_path(dirname(__FILE__)) . 'includes/connection-toyota-da
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/product-model.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/product.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/entities/product/product.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'includes/entities/product/product-info.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/request-list-base-model.php';
 
 
@@ -224,8 +225,9 @@ class Sync_Toyota_Data_Admin
 	{
 		$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
 		$productD = new ProductData($connectionData);
+
 		$total_records = $productD->getTotalCount();
-		// $total_records = $productD->getList(new RequestListBaseModel(null, null, 0, 40));
+		// $total_records = $productD->getListImage(new RequestListBaseModel(null, null, 0, 2));
 		// echo "<pre>";
 		// print_r($total_records);
 		// echo "</pre>";
@@ -415,8 +417,7 @@ class Sync_Toyota_Data_Admin
 	{
 		$syncedCus = array();
 		$baseReq = new RequestListBaseModel(null, null, $size_per_step * ($step - 1), $size_per_step);
-		$mapVehicleImage = function($vehicleImages): VehicleImage
-		{
+		$mapVehicleImage = function ($vehicleImages): VehicleImage {
 			return new VehicleImage(
 				$vehicleImages->imageUrl,
 				$vehicleImages->colorId,
@@ -426,8 +427,7 @@ class Sync_Toyota_Data_Admin
 			);
 		};
 
-		$mapInternalColorImage = function($internalColorImages): InternalColorImage
-		{
+		$mapInternalColorImage = function ($internalColorImages): InternalColorImage {
 			return new InternalColorImage(
 				$internalColorImages->imageUrl,
 				$internalColorImages->iColorId,
@@ -436,36 +436,28 @@ class Sync_Toyota_Data_Admin
 			);
 		};
 
-		$mapDetailOverviewProd = function($detail): DetailOverviewProduct
-		{
-			return new DetailOverviewProduct(
-				$detail->detailId,
-				$detail->detailName,
-				$detail->detailValue
-			);
-		};
-	
-
-		$mapGroupOverviewProd = function($group): GroupOverviewProduct
-		{
-			return new GroupOverviewProduct(
-				$group->groupId,
-				$group->groupName,
-				$group->groupValue,
-				array_map(
-					$mapDetailOverviewProd,
-					$group->detail
-				)
-			);
-		};
-
-		$mapOverview = function($overview): OverviewProduct
-		{
+		$mapOverview = function ($overview): OverviewProduct {
 			return new OverviewProduct(
 				$overview->bigGroupId,
 				$overview->bigGroupName,
 				array_map(
-					$mapGroupOverviewProd,
+					function ($group): GroupOverviewProduct {
+						return new GroupOverviewProduct(
+							$group->groupId,
+							$group->groupName,
+							$group->groupValue,
+							array_map(
+								function ($detail): DetailOverviewProduct {
+									return new DetailOverviewProduct(
+										$detail->detailId,
+										$detail->detailName,
+										$detail->detailValue
+									);
+								},
+								$group->detail
+							)
+						);
+					},
 					$overview->group
 				),
 			);
