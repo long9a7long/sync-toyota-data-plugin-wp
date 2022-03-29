@@ -48,11 +48,58 @@ class ProductData extends BaseModel
     return $res->result->items;
   }
 
-  public function getListImage(RequestListBaseModel $baseReq) {
+  public function getListImage(RequestListBaseModel $baseReq)
+  {
     $curl = new CustomCurl();
     $url = Constants::instance()->getVehicleProductLibraryImage();
     $res = $curl->get($this->connection, $url, $baseReq->getParamsModel());
     return $res->result->items;
+  }
+
+  public function getProductIdByGradeId($gradeId)
+  {
+    global $wpdb;
+
+    $total_record = $wpdb->get_row("SELECT * FROM `{$wpdb->prefix}postmeta` WHERE `meta_key`='gradeId' AND `meta_value`={$gradeId}");
+
+    if (count($total_record) > 0) {
+      return $total_record->post_id;
+    }
+    return null;
+  }
+
+  public function createGalleryProduct($image)
+  {
+    $postId = $this->getProductIdByGradeId($image->gradeId);
+    if ($postId != null) {
+      $value = get_field("thu_vien_anh_ngoai_that", $postId);
+      $imageId = Constants::instance()->downloadAImage($image->url);
+      $oldVal = array();
+      foreach ($value as $key => $val) {
+        array_push($oldVal, $val['id']);
+      }
+      if (count($oldVal)> 0)
+        $newVal = array_push($oldVal, $imageId);
+      else $newVal = array($imageId);
+      update_field("thu_vien_anh_ngoai_that", $newVal, $postId);
+
+      $imgArr = array(
+        array(
+          'libraryId' => $image->libraryId,
+          'url' => $image->url,
+        )
+      );
+      $current_thu_vien_text = get_post_meta($postId,'thu_vien_anh_ngoai_that_toyota');
+      if(count($current_thu_vien_text) > 0) {
+        $current_thu_vien = json_decode($current_thu_vien_text[0]);
+        array_push($imgArr, $current_thu_vien);
+      }
+      update_post_meta($postId, 'thu_vien_anh_ngoai_that_toyota', json_encode($imgArr));
+    }
+  }
+
+  public function updateGalleryProduct($image)
+  {
   }
 
   public function getTotalCount()
@@ -68,45 +115,65 @@ class ProductData extends BaseModel
     return 0;
   }
 
+  public function getTotalCountGalleryProduct()
+  {
+
+    $curl = new CustomCurl();
+    $url = Constants::instance()->getVehicleProductLibraryImage();
+    $baseReq = new RequestListBaseModel(null, null, 0, 1);
+    $res = $curl->get($this->connection, $url, $baseReq->getParamsModel());
+    if ($res) {
+      return $res->result->totalCount;
+    }
+    return 0;
+  }
+
   public function updateTotalCountProductModel($total)
   {
     global $wpdb;
-
     $total_record = $wpdb->get_results("SELECT * FROM `{$wpdb->prefix}sync_toyota_info` WHERE `meta_key`='total_records_prod_sync'");
-
     if (count($total_record) > 0) {
-
       $wpdb->update(
-
         "{$wpdb->prefix}sync_toyota_info",
-
         array(
-
           'meta_value' => $total,
-
         ),
-
         array(
-
           'meta_key' => 'total_records_prod_sync'
-
         )
-
       );
     } else {
-
       $wpdb->insert(
-
         "{$wpdb->prefix}sync_toyota_info",
-
         array(
-
           'meta_key' => 'total_records_prod_sync',
-
           'meta_value' => $total,
-
         )
+      );
+    }
+  }
 
+  public function updateTotalCountGalleryProd($total)
+  {
+    global $wpdb;
+    $total_record = $wpdb->get_results("SELECT * FROM `{$wpdb->prefix}sync_toyota_info` WHERE `meta_key`='total_records_gallery_prod_sync'");
+    if (count($total_record) > 0) {
+      $wpdb->update(
+        "{$wpdb->prefix}sync_toyota_info",
+        array(
+          'meta_value' => $total,
+        ),
+        array(
+          'meta_key' => 'total_records_gallery_prod_sync'
+        )
+      );
+    } else {
+      $wpdb->insert(
+        "{$wpdb->prefix}sync_toyota_info",
+        array(
+          'meta_key' => 'total_records_gallery_prod_sync',
+          'meta_value' => $total,
+        )
       );
     }
   }
@@ -260,16 +327,21 @@ class ProductData extends BaseModel
 
   public function get_total_records()
   {
-
     global $wpdb;
-
     $total_record = $wpdb->get_row("SELECT * FROM `{$wpdb->prefix}sync_toyota_info` WHERE `meta_key`='total_records_prod_sync'");
-
     if ($total_record) {
-
       return $total_record->meta_value;
     }
+    return 0;
+  }
 
+  public function get_total_records_gallery_prod()
+  {
+    global $wpdb;
+    $total_record = $wpdb->get_row("SELECT * FROM `{$wpdb->prefix}sync_toyota_info` WHERE `meta_key`='total_records_gallery_prod_sync'");
+    if ($total_record) {
+      return $total_record->meta_value;
+    }
     return 0;
   }
 
@@ -285,13 +357,17 @@ class ProductData extends BaseModel
     $dongXe = $this->getDongXe($product);
     $metaArr = array(
       'id_toyota' => $product->id,
-      'kieu_xe'   => strtolower($product->modelCar->getModelName()),
       'mau_car_chinh' => 0,
       'xe_cu'         => 0,
       'header_text'   => $product->slogan,
     );
-    
     $metaInputArr = array();
+
+
+    if($product->modelCar != null) {
+      $metaArr['kieu_xe'] = strtolower($product->modelCar->getModelName());
+      $metaInputArr['modelId'] = $product->modelCar->getModelId();
+    }
 
     $metaArr['gia_tham_khao'] = $product->vehicleImages[0] ? $product->vehicleImages[0]->price : 0;
 
@@ -304,7 +380,6 @@ class ProductData extends BaseModel
 
     $metaArr = array_merge($metaArr, $this->metaProdValues($product->overview));
     $metaInputArr['anh_dai_dien'] = $product->img90;
-    $metaInputArr['modelId'] = $product->modelCar->getModelId();
     $metaInputArr['gradeId'] = $product->gradeId;
 
     $my_post['meta_input'] = $metaInputArr;
@@ -315,7 +390,7 @@ class ProductData extends BaseModel
     $postID = wp_insert_post($my_post);
 
     $attachment_id = Constants::instance()->downloadAImage($product->img90);
-    
+
     set_post_thumbnail($postID, $attachment_id);
 
     if ($dongXe && $dongXe != null) {
@@ -337,10 +412,10 @@ class ProductData extends BaseModel
     }
     foreach ($product->internalColorImages as $key => $value) {
       $row = array(
-        'mau' => $value->hexcode,
-        'ten_mau'   => $value->colorName,
+        'mau' => $value->iHexcode,
+        'ten_mau'   => $value->iColorName,
         'anh_xe'  => Constants::instance()->downloadAImage($value->imageUrl),
-        'model_price' => $value->price,
+        // 'model_price' => $metaArr['gia_tham_khao'],
       );
 
       add_row('car_color_noi_that', $row, $postID);
@@ -1131,7 +1206,6 @@ class ProductData extends BaseModel
           }
       }
     }
-
     return $metaArr;
   }
 
@@ -1144,9 +1218,9 @@ class ProductData extends BaseModel
 
   public function getDongXe($product)
   {
-    for ($i = 0; $i < $product->overview; $i++) {
+    for ($i = 0; $i < count($product->overview); $i++) {
       if ($product->overview[$i]->bigGroupName == "THÔNG TIN CHUNG") {
-        for ($j = 0; $j < $product->overview[$i]->group; $j++) {
+        for ($j = 0; $j < count($product->overview[$i]->group); $j++) {
           if ($product->overview[$i]->group[$j]->groupName == "Kiểu dáng") {
             $groupVal =  trim($product->overview[$i]->group[$j]->groupValue);
             switch ($groupVal) {
@@ -1169,6 +1243,10 @@ class ProductData extends BaseModel
               case 'Thương mại':
                 $cateId = 16;
                 $cateName = 'Thương mại';
+                break;
+              case 'SUV':
+                $cateId = 14;
+                $cateName = 'SUV';
                 break;
             }
 

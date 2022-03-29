@@ -59,30 +59,20 @@
      */
 
     $(function() {
-
         var current_step_sync_product = 1;
+        var current_step_sync_gallery_product = 1;
 
         var syncing = false;
 
         // Change label Size per step when change value range input
-
         jQuery("#accordionproduct #size_per_step_product_sync").on(
-
             "change",
-
             function() {
-
                 jQuery("#accordionproduct #size_per_step_product_sync_value").text(
-
                     jQuery(this).val()
-
                 );
-
             }
-
         );
-
-
 
         // Update total records product
 
@@ -131,8 +121,6 @@
             }
 
         });
-
-
 
         // Update size per step product
 
@@ -218,228 +206,174 @@
 
         });
 
-
-
         // Sync product
 
         jQuery("#sync_now_btn").on("click", function() {
-
             jQuery(this).attr("disabled", "disabled");
-
             let spinner = jQuery(
-
                 '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true">'
-
             );
 
             jQuery(this).prepend(spinner);
-
             if (!syncing) {
-
                 sync_product_process();
-
             }
-
         });
 
-
-
-        function sync_product_process() {
-
-            syncing = true;
-
-            jQuery("#collapseThree .progress").css("display", "block");
-
+        function sync_process_ui() {
             jQuery("#collapseThree .alert-warning").css("display", "block");
-
             jQuery("#collapseThree .alert-success").css("display", "none");
-
             jQuery("#collapseThree .alert-danger").css("display", "none");
-
             jQuery("#collapseThree .sync-process").css("display", "block");
-
             jQuery("#collapseThree .p_end_at").css("display", "none");
-
-            jQuery("#collapseThree .start_time").text(new Date());
-
-
-
-            sync_product_post_data(current_step_sync_product);
-
         }
 
+        function sync_product_process() {
+            syncing = true;
+            jQuery("#collapseThree .progress").css("display", "block");
+            jQuery(".sync_step").text("Sản phẩm");
+            sync_process_ui();
+            jQuery("#collapseThree .start_time").text(new Date());
+            sync_product_post_data();
+        }
 
+        function sync_gallery_prod_process() {
+            jQuery("#collapseThree .pros-gallery").css("display", "block");
+            sync_process_ui();
+            sync_gallery_prod_post_data();
+        }
 
         function sync_product_post_data() {
-
             let postData = {
-
                 action: "admin_ajax_request",
-
                 param: "sync_product",
-
                 step: current_step_sync_product,
-
             };
+            jQuery.post(ajaxurl, postData, function(res) {
+                    let result = JSON.parse(res);
+                    if (result.status == 1) {
+                        update_sync_info();
+                        if (current_step_sync_product >= result.data.total_step) {
+                            // syncing = false;
+                            jQuery("#collapseThree .alert-warning").css("display", "none");
+                            jQuery("#collapseThree .alert-success").css("display", "block");
+                            jQuery("#collapseThree .alert-danger").css("display", "none");
+                            jQuery("#collapseThree .sync-process").css("display", "none");
+                            jQuery("#sync_now_btn").removeAttr("disabled");
+                            jQuery("#sync_now_btn .spinner-border").remove();
+                            jQuery("#collapseThree .progress-bar").css("width", "100%");
+                            jQuery("#collapseThree .progress-bar").text("100%");
+                            jQuery("#collapseThree .p_end_at").css("display", "block");
+                            jQuery("#collapseThree .end_time").text(new Date());
 
-            jQuery
-
-                .post(ajaxurl, postData, function(res) {
-
-                let result = JSON.parse(res);
-
-                if (result.status == 1) {
-
-                    update_sync_info();
-
-                    if (current_step_sync_product >= result.data.total_step) {
-
-                        syncing = false;
+                            sync_gallery_prod_process(); // Start Sync gallery product
+                            return;
+                        } else {
+                            let total_percent = Math.ceil(
+                                (current_step_sync_product / result.data.total_step) * 100
+                            );
+                            jQuery("#collapseThree .progress-bar").css(
+                                "width",
+                                total_percent + "%"
+                            );
+                            jQuery("#collapseThree .progress-bar").text(total_percent + "%");
+                            current_step_sync_product = result.data.step;
+                            sync_product_post_data();
+                        }
+                    } else {
 
                         jQuery("#collapseThree .alert-warning").css("display", "none");
-
-                        jQuery("#collapseThree .alert-success").css("display", "block");
-
-                        jQuery("#collapseThree .alert-danger").css("display", "none");
-
-
-
+                        jQuery("#collapseThree .alert-success").css("display", "none");
+                        jQuery("#collapseThree .alert-danger").css("display", "block");
                         jQuery("#collapseThree .sync-process").css("display", "none");
-
                         jQuery("#sync_now_btn").removeAttr("disabled");
-
                         jQuery("#sync_now_btn .spinner-border").remove();
-
-                        jQuery("#collapseThree .progress-bar").css("width", "100%");
-
-                        jQuery("#collapseThree .progress-bar").text("100%");
-
-                        jQuery("#collapseThree .p_end_at").css("display", "block");
-
-                        jQuery("#collapseThree .end_time").text(new Date());
-
+                        syncing = false;
                         return;
+                    }
+                })
+                .done(function() {})
+                .fail(function() {
+                    jQuery("#collapseThree .alert-warning").css("display", "none");
+                    jQuery("#collapseThree .alert-success").css("display", "none");
+                    jQuery("#collapseThree .alert-danger").css("display", "block");
+                    jQuery("#collapseThree .sync-process").css("display", "none");
+                    jQuery("#sync_now_btn").removeAttr("disabled");
+                    jQuery("#sync_now_btn .spinner-border").remove();
+                    syncing = false;
+                    return;
+                });
+        }
 
+        function sync_gallery_prod_post_data() {
+            let postData = {
+                action: "admin_ajax_request",
+                param: "sync_gallery_prod",
+                step: current_step_sync_gallery_product,
+            };
+
+            jQuery.post(ajaxurl, postData, function(res) {
+                let result = JSON.parse(res);
+                if (result.status == 1) {
+                    jQuery(".sync_step").text("Thư viện hình ảnh sản phẩm");
+
+                    if (current_step_sync_gallery_product >= result.data.total_step) {
+                        jQuery("#collapseThree .alert-warning").css("display", "none");
+                        jQuery("#collapseThree .alert-success").css("display", "block");
+                        jQuery("#collapseThree .alert-danger").css("display", "none");
+                        // jQuery("#collapseThree .progress-bar-gallery-prod").css("display", "none");
+                        jQuery("#collapseThree .sync-process").css("display", "none");
+                        jQuery("#sync_now_btn").removeAttr("disabled");
+                        jQuery("#sync_now_btn .spinner-border").remove();
+                        jQuery("#collapseThree .progress-bar-gallery-prod").css("width", "100%");
+                        jQuery("#collapseThree .progress-bar-gallery-prod").text("100%");
+
+                        syncing = false;
+                        return;
+                    } else {
+                        let total_percent = Math.ceil(
+                            (current_step_sync_gallery_product / result.data.total_step) * 100
+                        );
+                        jQuery("#collapseThree .progress-bar-gallery-prod").css(
+                            "width",
+                            total_percent + "%"
+                        );
+                        jQuery("#collapseThree .progress-bar-gallery-prod").text(total_percent + "%");
+                        current_step_sync_gallery_product = result.data.step;
+                        sync_gallery_prod_post_data();
                     }
 
 
-
-                    let total_percent = Math.ceil(
-
-                        (current_step_sync_product / result.data.total_step) * 100
-
-                    );
-
-                    jQuery("#collapseThree .progress-bar").css(
-
-                        "width",
-
-                        total_percent + "%"
-
-                    );
-
-                    jQuery("#collapseThree .progress-bar").text(total_percent + "%");
-
-                    current_step_sync_product = result.data.step;
-
-
-
-                    sync_product_post_data(current_step_sync_product);
-
-                } else {
-
-                    jQuery("#collapseThree .alert-warning").css("display", "none");
-
-                    jQuery("#collapseThree .alert-success").css("display", "none");
-
-                    jQuery("#collapseThree .alert-danger").css("display", "block");
-
-                    jQuery("#collapseThree .sync-process").css("display", "none");
-
-                    jQuery("#sync_now_btn").removeAttr("disabled");
-
-                    jQuery("#sync_now_btn .spinner-border").remove();
-
-                    syncing = false;
-
-                    return;
-
                 }
-
-            })
-
-            .done(function() {})
-
-            .fail(function() {
-
-                jQuery("#collapseThree .alert-warning").css("display", "none");
-
-                jQuery("#collapseThree .alert-success").css("display", "none");
-
-                jQuery("#collapseThree .alert-danger").css("display", "block");
-
-                jQuery("#collapseThree .sync-process").css("display", "none");
-
-                jQuery("#sync_now_btn").removeAttr("disabled");
-
-                jQuery("#sync_now_btn .spinner-border").remove();
-
-                syncing = false;
-
-                return;
-
             });
 
         }
 
-
-
         function update_sync_info() {
 
             let total_records = +jQuery("input#total_records").val();
-
             let step_size = +jQuery("input#size").val();
 
+
             jQuery(".sync-info .count_synced").text(
-
                 step_size * current_step_sync_product
-
             );
-
             jQuery(".sync-info .count_remaining").text(
-
                 total_records - step_size * current_step_sync_product
-
             );
-
         }
 
-
-
         $("#collapseThree").on("hide.bs.collapse", function(e) {
-
             if (syncing) {
-
                 e.preventDefault();
-
                 alert("Đang đồng bộ không thể thực hiện hành động khác!");
-
             }
-
         });
 
-
-
         window.onbeforeunload = function() {
-
             if (syncing) {
-
                 return "Đang đồng bộ không được thoát!";
-
             }
-
         };
-
     });
-
 })(jQuery);

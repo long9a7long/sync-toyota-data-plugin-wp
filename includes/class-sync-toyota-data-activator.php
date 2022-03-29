@@ -53,7 +53,7 @@ class Sync_Toyota_Data_Activator {
 		$wpdb->insert(
 			$this->get_config_table_name(),
 			array(
-				'meta_key' => 'total_records_product_sync',
+				'meta_key' => 'total_records_prod_sync',
 				'meta_value' => 0,
 			)
 		);
@@ -75,6 +75,13 @@ class Sync_Toyota_Data_Activator {
 			$this->get_config_table_name(),
 			array(
 				'meta_key' => 'total_times_product_sync',
+				'meta_value' => 0,
+			)
+		);
+		$wpdb->insert(
+			$this->get_config_table_name(),
+			array(
+				'meta_key' => 'total_records_gallery_prod_sync',
 				'meta_value' => 0,
 			)
 		);

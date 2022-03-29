@@ -11,13 +11,21 @@
     text-align: center;
 }
 
+.progress-bar-gallery-prod {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+}
+
 #collapseThree .alert,
 #collapseThree .sync-process,
 #collapseThree .progress {
     display: none;
+    margin: 5px 0;
 }
 
-#collapseThree .progress-bar {
+#collapseThree .progress>div {
     height: 100%;
 }
 

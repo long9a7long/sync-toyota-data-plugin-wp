@@ -227,7 +227,10 @@ class Sync_Toyota_Data_Admin
 		$productD = new ProductData($connectionData);
 
 		$total_records = $productD->getTotalCount();
-		// $total_records = $productD->getListImage(new RequestListBaseModel(null, null, 0, 2));
+		$total_records_gallery = $productD->getTotalCountGalleryProduct();
+		$productD->updateTotalCountGalleryProd($total_records_gallery);
+		
+		// $total_records = $productD->getListImage(new RequestListBaseModel(null, null, 1, 2));
 		// echo "<pre>";
 		// print_r($total_records);
 		// echo "</pre>";
@@ -269,6 +272,12 @@ class Sync_Toyota_Data_Admin
 				case "sync_product":
 					$this->process_ajax_sync_product();
 					break;
+				case "get_total_records_gallery_prod":
+					$this->process_ajax_get_total_records_gallery_prod();
+					break;
+				case "sync_gallery_prod":
+					$this->process_ajax_sync_gallery_prod();
+					break;
 				default:
 					break;
 			}
@@ -284,10 +293,10 @@ class Sync_Toyota_Data_Admin
 	{
 		try {
 			$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
-			$productMD = new ProductModelData($connectionData);
+			$productD = new ProductModelData($connectionData);
 			$baseReq = new RequestListBaseModel(null, null, 0, 5);
-			$total_records = $productMD->getTotalCount($baseReq);
-			$productMD->updateTotalCountProductModel($total_records);
+			$total_records = $productD->getTotalCount($baseReq);
+			$productD->updateTotalCountProductModel($total_records);
 			echo json_encode(array(
 				"status" => 1,
 				"message" => "Success",
@@ -409,7 +418,7 @@ class Sync_Toyota_Data_Admin
 	}
 
 	/**
-	 * Sync Customer data got from Toyota.
+	 * Sync Product data got from Toyota.
 	 *
 	 * @since    1.0.0
 	 */
@@ -615,6 +624,90 @@ class Sync_Toyota_Data_Admin
 		}
 
 		wp_die();
+	}
+
+	/**
+	 * Sync Gallery Product data got from Toyota.
+	 *
+	 * @since    1.0.0
+	 */
+	public function process_ajax_get_total_records_gallery_prod()
+	{
+		try {
+			$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
+			$productD = new ProductData($connectionData);
+			$baseReq = new RequestListBaseModel(null, null, 0, 5);
+			$total_records = $productD->getTotalCountGalleryProduct($baseReq);
+			$productD->updateTotalCountGalleryProd($total_records);
+			echo json_encode(array(
+				"status" => 1,
+				"message" => "Success",
+				"data" => $total_records,
+			));
+		} catch (Exception $e) {
+			echo json_encode(array(
+				"status" => 0,
+				"message" => "Error!",
+			));
+		}
+
+		wp_die();
+	}
+
+	public function process_ajax_sync_gallery_prod() {
+		try {
+			$result = array();
+			$step = isset($_POST['step']) ? $_POST['step'] : 0;
+			$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
+			$productMD = new ProductData($connectionData);
+
+			if ($step == 0) {
+				$result = array(
+					"status" => 0,
+					"message" => "Invalid data",
+				);
+			} else {
+				$size_per_step = $productMD->get_size_per_step();
+				$total_records = $productMD->get_total_records_gallery_prod();
+
+				$data_synced = $this->sync_gallery_product($productMD, $size_per_step, $step, $total_records);
+
+				$total_step = ceil($total_records / $size_per_step);
+
+				$result = array(
+					"status" => 1,
+					"message" => "Success",
+					"data" => [
+						"step" => $step + 1,
+						"total_step" => $total_step,
+						"gallery" => $data_synced,
+					],
+				);
+			}
+
+			echo json_encode($result);
+		} catch (Exception $e) {
+			echo json_encode(array(
+				"status" => 0,
+				"message" => "Error!",
+			));
+		}
+
+		wp_die();
+	}
+
+	public function sync_gallery_product($productMD, $size_per_step, $step, $total_records) {
+		$syncedCus = array();
+		$baseReq = new RequestListBaseModel(null, null, $size_per_step * ($step - 1), $size_per_step);
+		$results = $productMD->getListImage($baseReq);
+		if ($results) {
+			foreach ($results as $key => $value) {
+				$productMD->createGalleryProduct($value);
+				array_push($syncedCus, $value);
+			}
+		}
+		unset($results);
+		return $syncedCus;
 	}
 
 	public function get_meta_sync_value($meta_key)
