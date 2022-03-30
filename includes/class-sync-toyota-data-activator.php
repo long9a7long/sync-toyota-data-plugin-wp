@@ -85,6 +85,14 @@ class Sync_Toyota_Data_Activator {
 				'meta_value' => 0,
 			)
 		);
+		$wpdb->insert(
+			$this->get_config_table_name(),
+			array(
+				'meta_key' => 'total_records_catalogue_sync',
+				'meta_value' => 0,
+			)
+		);
+		
 	}
 
 	public function init_table_model_car() {

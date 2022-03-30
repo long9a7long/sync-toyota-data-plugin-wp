@@ -24,6 +24,9 @@
 <div class="progress pros-gallery">
     <div class="progress-bar-gallery-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
 </div>
+<div class="progress pros-catalogue">
+    <div class="progress-bar-catalogue-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
+</div>
 
 <div class="container mt-3 sync-info">
     <p><b>Đang đồng bộ: </b><span class="sync_step"></span></p>

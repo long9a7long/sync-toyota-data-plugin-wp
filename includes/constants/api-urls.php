@@ -7,6 +7,7 @@ class Constants
     private $modelProd = "api/services/app/DataHubApi/GetListModelProduct";
     private $products = "api/services/app/DataHubApi/GetVehicleProductOverview";
     private $vehicleProductLibraryImage = "api/services/app/DataHubApi/GetListVehicleProductLibraryImage";
+    private $catalogue = "api/services/app/DataHubApi/GetListVehicleProductCataloge";
     
 
 
@@ -41,6 +42,11 @@ class Constants
     public function getVehicleProductLibraryImage()
     {
         return $this->baseUrl . $this->vehicleProductLibraryImage;
+    }
+
+    public function getCatalogue()
+    {
+        return $this->baseUrl . $this->catalogue;
     }
 
     public function downloadAImage($url)

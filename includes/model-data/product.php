@@ -4,12 +4,25 @@ require_once plugin_dir_path(dirname(__FILE__)) . 'constants/api-urls.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'custom-curl.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'constants/table-name.php';
 
-class ProductData extends BaseModel
+class ProductData
 {
   private $connection;
   public function __construct($connection)
   {
     $this->connection = $connection;
+  }
+
+  public function getProdIdFromData($idData) {
+    global $wpdb;
+    $tableName = "postmeta";
+    $kq = $wpdb->get_row(
+      $wpdb->prepare("SELECT * FROM " . $wpdb->prefix . $tableName . " WHERE meta_key='id_toyota' AND meta_value={$idData}")
+    );
+
+    if ($kq) {
+      return $kq->post_id;
+    }
+    return null;
   }
 
   public function getDetail($idProd)
@@ -72,29 +85,42 @@ class ProductData extends BaseModel
   {
     $postId = $this->getProductIdByGradeId($image->gradeId);
     if ($postId != null) {
-      $value = get_field("thu_vien_anh_ngoai_that", $postId);
-      $imageId = Constants::instance()->downloadAImage($image->url);
-      $oldVal = array();
-      foreach ($value as $key => $val) {
-        array_push($oldVal, $val['id']);
-      }
-      if (count($oldVal)> 0)
-        $newVal = array_push($oldVal, $imageId);
-      else $newVal = array($imageId);
-      update_field("thu_vien_anh_ngoai_that", $newVal, $postId);
-
-      $imgArr = array(
-        array(
-          'libraryId' => $image->libraryId,
-          'url' => $image->url,
-        )
-      );
-      $current_thu_vien_text = get_post_meta($postId,'thu_vien_anh_ngoai_that_toyota');
-      if(count($current_thu_vien_text) > 0) {
+      $checkIsExisted = false;
+      $current_thu_vien_text = get_post_meta($postId, 'thu_vien_anh_ngoai_that_toyota');
+      if (count($current_thu_vien_text) > 0) {
         $current_thu_vien = json_decode($current_thu_vien_text[0]);
-        array_push($imgArr, $current_thu_vien);
+        for ($i = 0; $i < count($current_thu_vien); $i++) {
+          if ($current_thu_vien['url'] == $image->url) {
+            $checkIsExisted = true;
+            break;
+          }
+        }
       }
-      update_post_meta($postId, 'thu_vien_anh_ngoai_that_toyota', json_encode($imgArr));
+      if ($checkIsExisted == false) {
+        $value = get_field("thu_vien_anh_ngoai_that", $postId);
+        $imageId = Constants::instance()->downloadAImage($image->url);
+        $oldVal = array();
+        foreach ($value as $key => $val) {
+          array_push($oldVal, $val['id']);
+        }
+        if (count($oldVal) > 0)
+          $newVal = array_push($oldVal, $imageId);
+        else $newVal = array($imageId);
+        update_field("thu_vien_anh_ngoai_that", $newVal, $postId);
+        $imgArr = array(
+          array(
+            'libraryId' => $image->libraryId,
+            'url' => $image->url,
+          )
+        );
+
+        if (count($current_thu_vien_text) > 0) {
+          $current_thu_vien = json_decode($current_thu_vien_text[0]);
+          array_push($imgArr, $current_thu_vien);
+        }
+        update_post_meta($postId, 'thu_vien_anh_ngoai_that_toyota', json_encode($imgArr));
+      }
+
     }
   }
 
@@ -364,7 +390,7 @@ class ProductData extends BaseModel
     $metaInputArr = array();
 
 
-    if($product->modelCar != null) {
+    if ($product->modelCar != null) {
       $metaArr['kieu_xe'] = strtolower($product->modelCar->getModelName());
       $metaInputArr['modelId'] = $product->modelCar->getModelId();
     }
@@ -1209,8 +1235,84 @@ class ProductData extends BaseModel
     return $metaArr;
   }
 
-  public function update($idProd)
+  public function update($product, $idProd)
   {
+    // var_dump($idProd);
+    $my_post = array(
+      'ID'           => $idProd,
+      'post_title'   => wp_strip_all_tags($product->commercialName),
+      'post_content' => $product->description,
+    );
+
+
+
+    $dongXe = $this->getDongXe($product);
+    $metaArr = array(
+      'id_toyota' => $product->id,
+      'mau_car_chinh' => 0,
+      'xe_cu'         => 0,
+      'header_text'   => $product->slogan,
+    );
+    $metaInputArr = array();
+
+
+    if ($product->modelCar != null) {
+      $metaArr['kieu_xe'] = strtolower($product->modelCar->getModelName());
+      $metaInputArr['modelId'] = $product->modelCar->getModelId();
+    }
+
+    $metaArr['gia_tham_khao'] = $product->vehicleImages[0] ? $product->vehicleImages[0]->price : 0;
+
+    $metaArr['anh_cover'] = Constants::instance()->downloadAImage($product->banner);
+    $metaInputArr['anh_cover'] = $product->banner;
+    $metaArr['anh_gioi_thieu'] = Constants::instance()->downloadAImage($product->imgDetail);
+    $metaInputArr['anh_gioi_thieu'] = $product->imgDetail;
+    $metaArr['anh_dai_dien_2'] = Constants::instance()->downloadAImage($product->img45);
+    $metaInputArr['anh_dai_dien_2'] = $product->img45;
+
+    $metaArr = array_merge($metaArr, $this->metaProdValues($product->overview));
+    $metaInputArr['anh_dai_dien'] = $product->img90;
+    $metaInputArr['gradeId'] = $product->gradeId;
+
+    $my_post['meta_input'] = $metaInputArr;
+
+
+
+    // Update the post into the database
+    wp_update_post($my_post);
+    $anh_dai_dien = get_post_meta($idProd, 'anh_dai_dien', true);
+    if ($product->img90 != $anh_dai_dien) {
+      $attachment_id = Constants::instance()->downloadAImage($product->img90);
+      set_post_thumbnail($idProd, $attachment_id);
+    }
+
+    if ($dongXe && $dongXe != null) {
+      // $my_post['taxonomies'] = array($dongXe['cateName']);
+      wp_set_post_terms($idProd, array($dongXe['cateId']), 'dong_xe');
+    }
+
+    $this->updateMetaField($metaArr, $idProd);
+
+    // foreach ($product->vehicleImages as $key => $value) {
+    //   $row = array(
+    //     'mau' => $value->hexcode,
+    //     'ten_mau'   => $value->colorName,
+    //     'anh_xe'  => Constants::instance()->downloadAImage($value->imageUrl),
+    //     'model_price' => $value->price,
+    //   );
+
+    //   add_row('car_color_ngoai_that', $row, $idProd);
+    // }
+    // foreach ($product->internalColorImages as $key => $value) {
+    //   $row = array(
+    //     'mau' => $value->iHexcode,
+    //     'ten_mau'   => $value->iColorName,
+    //     'anh_xe'  => Constants::instance()->downloadAImage($value->imageUrl),
+    //     // 'model_price' => $metaArr['gia_tham_khao'],
+    //   );
+
+    //   add_row('car_color_noi_that', $row, $idProd);
+    // }
   }
   public function delete($idProd)
   {
