@@ -4,5 +4,6 @@ class TableName {
     public static $modelCar = 'sync_toyota_car_model';
     public static $gradeCar = 'sync_toyota_car_grade';
     public static $gradeModelCar = 'sync_toyota_car_grade_model';
+    public static $informationCar = 'sync_toyota_car_information';
 }
 

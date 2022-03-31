@@ -8,6 +8,9 @@ class Constants
     private $products = "api/services/app/DataHubApi/GetVehicleProductOverview";
     private $vehicleProductLibraryImage = "api/services/app/DataHubApi/GetListVehicleProductLibraryImage";
     private $catalogue = "api/services/app/DataHubApi/GetListVehicleProductCataloge";
+    private $feature = "api/services/app/DataHubApi/GetListVehicleProductFeature";
+    private $furniture = "api/services/app/DataHubApi/GetListVehicleProductFurniture";
+    private $exterior = "api/services/app/DataHubApi/GetListVehicleProductExteriorImage";
     
 
 
@@ -47,6 +50,21 @@ class Constants
     public function getCatalogue()
     {
         return $this->baseUrl . $this->catalogue;
+    }
+
+    public function getFeature()
+    {
+        return $this->baseUrl . $this->feature;
+    }
+
+    public function getFurniture()
+    {
+        return $this->baseUrl . $this->furniture;
+    }
+
+    public function getExterior()
+    {
+        return $this->baseUrl . $this->exterior;
     }
 
     public function downloadAImage($url)

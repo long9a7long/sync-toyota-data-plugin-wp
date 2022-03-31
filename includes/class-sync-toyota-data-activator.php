@@ -34,6 +34,8 @@ class Sync_Toyota_Data_Activator {
 		$this->init_table_sync_info();
 		$this->init_table_model_car();
 		$this->init_table_grade_car();
+		$this->init_table_information_car();
+
 	}
 
 	public function init_table_sync_info() {
@@ -44,7 +46,7 @@ class Sync_Toyota_Data_Activator {
 				`meta_key` varchar(100) NOT NULL,
 				`meta_value` longtext DEFAULT NULL,
 				PRIMARY KEY (`id`)
-			   ) ENGINE=MyISAM DEFAULT CHARSET=latin1";
+			   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci";
 	
 			require_once (ABSPATH.'wp-admin/includes/upgrade.php' );
 			dbDelta( $table_query );
@@ -61,7 +63,7 @@ class Sync_Toyota_Data_Activator {
 			$this->get_config_table_name(),
 			array(
 				'meta_key' => 'size_per_step_product_sync',
-				'meta_value' => 10,
+				'meta_value' => 5,
 			)
 		);
 		$wpdb->insert(
@@ -103,7 +105,7 @@ class Sync_Toyota_Data_Activator {
 				`modelId` int(11) NOT NULL AUTO_INCREMENT,
 				`modelName` varchar(100) NOT NULL,
 				PRIMARY KEY (`modelId`)
-			   ) ENGINE=MyISAM DEFAULT CHARSET=latin1";
+			   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci";
 	
 			require_once (ABSPATH.'wp-admin/includes/upgrade.php' );
 			dbDelta( $table_query );
@@ -148,8 +150,7 @@ class Sync_Toyota_Data_Activator {
 			$table_query = "CREATE TABLE `".$wpdb->prefix.$gradeCarTableName."` (
 				`gradeId` int(11) NOT NULL AUTO_INCREMENT,
 				`gradeName` varchar(100) NOT NULL,
-				PRIMARY KEY (`id`)
-			   ) ENGINE=MyISAM DEFAULT CHARSET=latin1";
+			   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci";
 	
 			require_once (ABSPATH.'wp-admin/includes/upgrade.php' );
 			dbDelta( $table_query );
@@ -159,7 +160,29 @@ class Sync_Toyota_Data_Activator {
 			$table_query = "CREATE TABLE `".$wpdb->prefix.$$gradeModelCarTableName."` (
 				`gradeId` int(11) NOT NULL AUTO_INCREMENT,
 				`modelId` int(11) NOT NULL,
-			   ) ENGINE=MyISAM DEFAULT CHARSET=latin1";
+			   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci";
+	
+			require_once (ABSPATH.'wp-admin/includes/upgrade.php' );
+			dbDelta( $table_query );
+		}
+	}
+
+	public function init_table_information_car() {
+		global $wpdb;
+		$tableName = TableName::$informationCar;
+		if($wpdb->get_var("SHOW tables like '".$wpdb->prefix.$tableName."'") != $wpdb->prefix.$tableName) {
+			$table_query = "CREATE TABLE `".$wpdb->prefix.$tableName."` (
+				`id` int(11) NOT NULL AUTO_INCREMENT,
+				`postId` int(11) NOT NULL,
+				`infoType` varchar(100) NOT NULL,
+				`infoId` int(11) NOT NULL,
+				`name` varchar(100) NOT NULL,
+				`detail` longtext,
+				`url` varchar(100),
+				`ordering` int(11) NULL,
+				`category` varchar(100) NULL,
+				PRIMARY KEY (`id`)
+			   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci";
 	
 			require_once (ABSPATH.'wp-admin/includes/upgrade.php' );
 			dbDelta( $table_query );

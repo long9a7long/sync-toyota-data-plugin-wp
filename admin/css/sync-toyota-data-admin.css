@@ -11,8 +11,7 @@
     text-align: center;
 }
 
-.progress-bar-gallery-prod,
-.progress-bar-catalogue-prod {
+.progress-bar-prod {
     display: flex;
     justify-content: center;
     align-items: center;

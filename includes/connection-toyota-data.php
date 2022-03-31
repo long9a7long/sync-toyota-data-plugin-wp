@@ -2,6 +2,7 @@
 require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Curl/Curl.php';
 require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/constants/api-urls.php';
 require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/custom-curl.php';
+require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/constants/info-type.php';
 
 use Curl\Curl;
 class ConnectionData {

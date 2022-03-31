@@ -22,10 +22,18 @@
     <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
 </div>
 <div class="progress pros-gallery">
-    <div class="progress-bar-gallery-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
+    <div class="progress-bar-prod progress-bar-gallery-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
 </div>
 <div class="progress pros-catalogue">
-    <div class="progress-bar-catalogue-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
+    <div class="progress-bar-prod progress-bar-catalogue-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
+</div>
+<div class="progress pros-feature">
+    <div class="progress-bar-prod progress-bar-feature-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
+</div>
+<div class="progress pros-furniture">
+    <div class="progress-bar-prod progress-bar-furniture-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
+</div><div class="progress pros-exterior">
+    <div class="progress-bar-prod progress-bar-exterior-prod bg-success progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
 </div>
 
 <div class="container mt-3 sync-info">

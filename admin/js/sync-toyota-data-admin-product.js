@@ -59,9 +59,12 @@
      */
 
     $(function() {
-        var current_step_sync_product = 1;
+        var current_step_sync_product = 99;
         var current_step_sync_gallery_product = 1;
         var current_step_sync_catalogue_product = 1;
+        var current_step_sync_feature_product = 1;
+        var current_step_sync_furniture_product = 1;
+        var current_step_sync_exterior_product = 1;
 
         var syncing = false;
 
@@ -250,6 +253,24 @@
             sync_catalogue_prod_post_data();
         }
 
+        function sync_feature_prod_process() {
+            jQuery("#collapseThree .pros-feature").css("display", "block");
+            sync_process_ui();
+            sync_feature_prod_post_data();
+        }
+
+        function sync_furniture_prod_process() {
+            jQuery("#collapseThree .pros-furniture").css("display", "block");
+            sync_process_ui();
+            sync_furniture_prod_post_data();
+        }
+
+        function sync_exterior_prod_process() {
+            jQuery("#collapseThree .pros-exterior").css("display", "block");
+            sync_process_ui();
+            sync_exterior_prod_post_data();
+        }
+
         function sync_product_post_data() {
             let postData = {
                 action: "admin_ajax_request",
@@ -266,7 +287,6 @@
                             jQuery("#collapseThree .alert-success").css("display", "block");
                             jQuery("#collapseThree .alert-danger").css("display", "none");
                             jQuery("#collapseThree .sync-process").css("display", "none");
-                            jQuery("#sync_now_btn").removeAttr("disabled");
                             jQuery("#sync_now_btn .spinner-border").remove();
                             jQuery("#collapseThree .progress-bar").css("width", "100%");
                             jQuery("#collapseThree .progress-bar").text("100%");
@@ -332,7 +352,6 @@
                         jQuery("#collapseThree .alert-danger").css("display", "none");
                         // jQuery("#collapseThree .progress-bar-gallery-prod").css("display", "none");
                         jQuery("#collapseThree .sync-process").css("display", "none");
-                        jQuery("#sync_now_btn").removeAttr("disabled");
                         jQuery("#sync_now_btn .spinner-border").remove();
                         jQuery("#collapseThree .progress-bar-gallery-prod").css("width", "100%");
                         jQuery("#collapseThree .progress-bar-gallery-prod").text("100%");
@@ -376,11 +395,10 @@
                         jQuery("#collapseThree .alert-danger").css("display", "none");
                         // jQuery("#collapseThree .progress-bar-gallery-prod").css("display", "none");
                         jQuery("#collapseThree .sync-process").css("display", "none");
-                        jQuery("#sync_now_btn").removeAttr("disabled");
                         jQuery("#sync_now_btn .spinner-border").remove();
                         jQuery("#collapseThree .progress-bar-catalogue-prod").css("width", "100%");
                         jQuery("#collapseThree .progress-bar-catalogue-prod").text("100%");
-                        syncing = false;
+                        sync_feature_prod_process(); // Start Sync feature product
 
                         return;
                     } else {
@@ -401,6 +419,130 @@
             });
         }
 
+        function sync_feature_prod_post_data() {
+            let postData = {
+                action: "admin_ajax_request",
+                param: "sync_feature",
+                step: current_step_sync_feature_product,
+            };
+
+            jQuery.post(ajaxurl, postData, function(res) {
+                let result = JSON.parse(res);
+                if (result.status == 1) {
+                    jQuery(".sync_step").text("Thông tin Vận hành");
+
+                    if (current_step_sync_feature_product >= result.data.total_step) {
+                        jQuery("#collapseThree .alert-warning").css("display", "none");
+                        jQuery("#collapseThree .alert-success").css("display", "block");
+                        jQuery("#collapseThree .alert-danger").css("display", "none");
+                        jQuery("#collapseThree .sync-process").css("display", "none");
+                        jQuery("#sync_now_btn .spinner-border").remove();
+                        jQuery("#collapseThree .progress-bar-feature-prod").css("width", "100%");
+                        jQuery("#collapseThree .progress-bar-feature-prod").text("100%");
+                        sync_furniture_prod_process(); // Start Sync furniture product
+
+                        return;
+                    } else {
+                        let total_percent = Math.ceil(
+                            (current_step_sync_feature_product / result.data.total_step) * 100
+                        );
+                        jQuery("#collapseThree .progress-bar-feature-prod").css(
+                            "width",
+                            total_percent + "%"
+                        );
+                        jQuery("#collapseThree .progress-bar-feature-prod").text(total_percent + "%");
+                        current_step_sync_feature_product = result.data.step;
+                        sync_feature_prod_post_data();
+                    }
+
+
+                }
+            });
+        }
+
+        function sync_furniture_prod_post_data() {
+            let postData = {
+                action: "admin_ajax_request",
+                param: "sync_furniture",
+                step: current_step_sync_furniture_product,
+            };
+
+            jQuery.post(ajaxurl, postData, function(res) {
+                let result = JSON.parse(res);
+                if (result.status == 1) {
+                    jQuery(".sync_step").text("Thông tin Nội thất");
+
+                    if (current_step_sync_furniture_product >= result.data.total_step) {
+                        jQuery("#collapseThree .alert-warning").css("display", "none");
+                        jQuery("#collapseThree .alert-success").css("display", "block");
+                        jQuery("#collapseThree .alert-danger").css("display", "none");
+                        jQuery("#collapseThree .sync-process").css("display", "none");
+
+                        jQuery("#sync_now_btn .spinner-border").remove();
+                        jQuery("#collapseThree .progress-bar-furniture-prod").css("width", "100%");
+                        jQuery("#collapseThree .progress-bar-furniture-prod").text("100%");
+                        sync_exterior_prod_process(); // Start Sync exterior product
+
+                        return;
+                    } else {
+                        let total_percent = Math.ceil(
+                            (current_step_sync_furniture_product / result.data.total_step) * 100
+                        );
+                        jQuery("#collapseThree .progress-bar-furniture-prod").css(
+                            "width",
+                            total_percent + "%"
+                        );
+                        jQuery("#collapseThree .progress-bar-furniture-prod").text(total_percent + "%");
+                        current_step_sync_furniture_product = result.data.step;
+                        sync_furniture_prod_post_data();
+                    }
+
+
+                }
+            });
+        }
+
+        function sync_exterior_prod_post_data() {
+            let postData = {
+                action: "admin_ajax_request",
+                param: "sync_exterior",
+                step: current_step_sync_exterior_product,
+            };
+
+            jQuery.post(ajaxurl, postData, function(res) {
+                let result = JSON.parse(res);
+                if (result.status == 1) {
+                    jQuery(".sync_step").text("Thông tin Ngoại thất");
+
+                    if (current_step_sync_exterior_product >= result.data.total_step) {
+                        jQuery("#collapseThree .alert-warning").css("display", "none");
+                        jQuery("#collapseThree .alert-success").css("display", "block");
+                        jQuery("#collapseThree .alert-danger").css("display", "none");
+                        jQuery("#collapseThree .sync-process").css("display", "none");
+                        jQuery("#sync_now_btn").removeAttr("disabled");
+                        jQuery("#sync_now_btn .spinner-border").remove();
+                        jQuery("#collapseThree .progress-bar-exterior-prod").css("width", "100%");
+                        jQuery("#collapseThree .progress-bar-exterior-prod").text("100%");
+                        syncing = false;
+
+                        return;
+                    } else {
+                        let total_percent = Math.ceil(
+                            (current_step_sync_exterior_product / result.data.total_step) * 100
+                        );
+                        jQuery("#collapseThree .progress-bar-exterior-prod").css(
+                            "width",
+                            total_percent + "%"
+                        );
+                        jQuery("#collapseThree .progress-bar-exterior-prod").text(total_percent + "%");
+                        current_step_sync_exterior_product = result.data.step;
+                        sync_exterior_prod_post_data();
+                    }
+
+
+                }
+            });
+        }
 
         function update_sync_info() {
 

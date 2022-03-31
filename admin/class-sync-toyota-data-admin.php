@@ -4,6 +4,7 @@ require_once plugin_dir_path(dirname(__FILE__)) . 'includes/connection-toyota-da
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/product-model.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/product.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/catalogue.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/info-product.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/entities/product/product.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/entities/product/product-info.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'includes/model-data/request-list-base-model.php';
@@ -227,13 +228,20 @@ class Sync_Toyota_Data_Admin
 		$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
 		$productD = new ProductData($connectionData);
 		$productCata = new CatalogueData($connectionData);
+		$productInfo = new InfoProdData($connectionData);
 		$total_records = $productD->getTotalCount();
 		$total_records_gallery = $productD->getTotalCountGalleryProduct();
 		$total_records_catalogue = $productCata->getTotalCount();
+		$total_records_feature = $productInfo->getTotalCount(InfoType::$feature);
+		$total_records_furniture = $productInfo->getTotalCount(InfoType::$furniture);
+		$total_records_exterior = $productInfo->getTotalCount(InfoType::$exterior);
 
 		$productD->updateTotalCountProductModel($total_records);
 		$productD->updateTotalCountGalleryProd($total_records_gallery);
 		$productCata->updateTotalCount($total_records_catalogue);
+		$productInfo->updateTotalCount($total_records_feature, InfoType::$feature);
+		$productInfo->updateTotalCount($total_records_exterior, InfoType::$exterior);
+		$productInfo->updateTotalCount($total_records_furniture, InfoType::$furniture);
 
 		// $total_records = $productCata->getList(new RequestListBaseModel(null, null, 1, 10));
 		// echo "<pre>";
@@ -288,7 +296,24 @@ class Sync_Toyota_Data_Admin
 				case "sync_catalogue":
 					$this->process_ajax_sync_catalogue();
 					break;
-
+				case "get_total_records_feature":
+					$this->process_ajax_get_total_records_info_prod(InfoType::$feature);
+					break;
+				case "sync_feature":
+					$this->process_ajax_sync_info(InfoType::$feature);
+					break;
+				case "get_total_records_furniture":
+					$this->process_ajax_get_total_records_info_prod(InfoType::$furniture);
+					break;
+				case "sync_furniture":
+					$this->process_ajax_sync_info(InfoType::$furniture);
+					break;
+				case "get_total_records_exterior":
+					$this->process_ajax_get_total_records_info_prod(InfoType::$exterior);
+					break;
+				case "sync_exterior":
+					$this->process_ajax_sync_info(InfoType::$exterior);
+					break;
 				default:
 					break;
 			}
@@ -512,7 +537,7 @@ class Sync_Toyota_Data_Admin
 				);
 				$product->setModelCarByID($value->modelId);
 				$productDbId = $productMD->getProdIdFromData($value->id);
-				if ($productDbId!=null) {
+				if ($productDbId != null) {
 					$productMD->update($product, $productDbId);
 				} else {
 					$productMD->create($product);
@@ -523,8 +548,6 @@ class Sync_Toyota_Data_Admin
 		unset($results);
 		return $syncedCus;
 	}
-
-
 
 	public function process_ajax_get_total_records_product()
 	{
@@ -728,12 +751,12 @@ class Sync_Toyota_Data_Admin
 	 *
 	 * @since    1.0.0
 	 */
-	public function process_ajax_get_total_records_catalogue_prod() {
+	public function process_ajax_get_total_records_catalogue_prod()
+	{
 		try {
 			$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
 			$productD = new CatalogueData($connectionData);
-			$baseReq = new RequestListBaseModel(null, null, 0, 5);
-			$total_records = $productD->getTotalCount($baseReq);
+			$total_records = $productD->getTotalCount();
 			$productD->updateTotalCount($total_records);
 			echo json_encode(array(
 				"status" => 1,
@@ -750,7 +773,8 @@ class Sync_Toyota_Data_Admin
 		wp_die();
 	}
 
-	public function process_ajax_sync_catalogue() {
+	public function process_ajax_sync_catalogue()
+	{
 		try {
 			$result = array();
 			$step = isset($_POST['step']) ? $_POST['step'] : 0;
@@ -792,7 +816,8 @@ class Sync_Toyota_Data_Admin
 		wp_die();
 	}
 
-	public function sync_catalogue($productCD, $size_per_step, $step) {
+	public function sync_catalogue($productCD, $size_per_step, $step)
+	{
 		$syncedCus = array();
 		$baseReq = new RequestListBaseModel(null, null, $size_per_step * ($step - 1), $size_per_step);
 		$results = $productCD->getList($baseReq);
@@ -804,7 +829,92 @@ class Sync_Toyota_Data_Admin
 		}
 		unset($results);
 		return $syncedCus;
-	} 
+	}
+
+	/**
+	 * Sync Info Product data got from Toyota.
+	 *
+	 * @since    1.0.0
+	 */
+	public function process_ajax_get_total_records_info_prod($type) {
+		try {
+			$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
+			$productD = new InfoProdData($connectionData);
+			
+			$total_records = $productD->getTotalCount($type);
+			$productD->updateTotalCount($total_records, $type);
+			echo json_encode(array(
+				"status" => 1,
+				"message" => "Success",
+				"data" => $total_records,
+			));
+		} catch (Exception $e) {
+			echo json_encode(array(
+				"status" => 0,
+				"message" => "Error!",
+			));
+		}
+
+		wp_die();
+	}
+
+	public function process_ajax_sync_info($type) {
+		try {
+			$result = array();
+			$step = isset($_POST['step']) ? $_POST['step'] : 0;
+			$connectionData = new ConnectionData($this->username, $this->password, $this->tenantId);
+			$productMD = new InfoProdData($connectionData);
+
+			if ($step == 0) {
+				$result = array(
+					"status" => 0,
+					"message" => "Invalid data",
+				);
+			} else {
+				$size_per_step = $productMD->get_size_per_step($type);
+				$total_records = $productMD->get_total_records($type);
+
+				$data_synced = $this->sync_info($type, $productMD, $size_per_step, $step);
+
+				$total_step = ceil($total_records / $size_per_step);
+
+				$result = array(
+					"status" => 1,
+					"message" => "Success",
+					"data" => [
+						"step" => $step + 1,
+						"total_step" => $total_step,
+						"sync_data" => $data_synced,
+					],
+				);
+			}
+
+			echo json_encode($result);
+		} catch (Exception $e) {
+			echo json_encode(array(
+				"status" => 0,
+				"message" => "Error!",
+			));
+		}
+
+		wp_die();
+	}
+
+	public function sync_info($type, $productMD, $size_per_step, $step) {
+
+		$syncedCus = array();
+		$baseReq = new RequestListBaseModel(null, null, $size_per_step * ($step - 1), $size_per_step);
+		$results = $productMD->getList($baseReq, $type);
+		
+		if ($results) {
+			foreach ($results as $key => $value) {
+				$productMD->update($value, $type);
+				array_push($syncedCus, $value);
+			}
+		}
+		unset($results);
+		return $syncedCus;
+	}
 
 	public function get_meta_sync_value($meta_key)
 	{

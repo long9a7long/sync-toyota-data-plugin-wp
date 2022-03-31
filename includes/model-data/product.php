@@ -75,7 +75,7 @@ class ProductData
 
     $total_record = $wpdb->get_row("SELECT * FROM `{$wpdb->prefix}postmeta` WHERE `meta_key`='gradeId' AND `meta_value`={$gradeId}");
 
-    if (count($total_record) > 0) {
+    if ($total_record) {
       return $total_record->post_id;
     }
     return null;
@@ -87,25 +87,33 @@ class ProductData
     if ($postId != null) {
       $checkIsExisted = false;
       $current_thu_vien_text = get_post_meta($postId, 'thu_vien_anh_ngoai_that_toyota');
-      if (count($current_thu_vien_text) > 0) {
+      if ($current_thu_vien_text) {
         $current_thu_vien = json_decode($current_thu_vien_text[0]);
-        for ($i = 0; $i < count($current_thu_vien); $i++) {
-          if ($current_thu_vien['url'] == $image->url) {
-            $checkIsExisted = true;
-            break;
+        if(count($current_thu_vien)>0) {
+          for ($i = 0; $i < count($current_thu_vien); $i++) {
+
+            if ($current_thu_vien[$i] != NULL && (($current_thu_vien[$i]->url) == ($image->url))) {
+              $checkIsExisted = true;
+              break;
+            }
           }
         }
+        
       }
-      if ($checkIsExisted == false) {
+      if ($checkIsExisted == false) { // Chua ton tai
         $value = get_field("thu_vien_anh_ngoai_that", $postId);
+        
         $imageId = Constants::instance()->downloadAImage($image->url);
         $oldVal = array();
-        foreach ($value as $key => $val) {
-          array_push($oldVal, $val['id']);
+        if($value && is_array($value) && count($value)> 0)
+          foreach ($value as $key => $val) {
+            array_push($oldVal, $val['id']);
+          }
+        if (count($oldVal) > 0) {
+          array_push($oldVal, $imageId);
+          $newVal = $oldVal;
         }
-        if (count($oldVal) > 0)
-          $newVal = array_push($oldVal, $imageId);
-        else $newVal = array($imageId);
+        else $newVal = [$imageId];
         update_field("thu_vien_anh_ngoai_that", $newVal, $postId);
         $imgArr = array(
           array(
@@ -114,9 +122,12 @@ class ProductData
           )
         );
 
-        if (count($current_thu_vien_text) > 0) {
+        if ($current_thu_vien_text) {
           $current_thu_vien = json_decode($current_thu_vien_text[0]);
-          array_push($imgArr, $current_thu_vien);
+          foreach ($current_thu_vien as $key => $value) {
+            array_push($imgArr, $value);
+          }
+          
         }
         update_post_meta($postId, 'thu_vien_anh_ngoai_that_toyota', json_encode($imgArr));
       }
@@ -424,6 +435,16 @@ class ProductData
       wp_set_post_terms($postID, array($dongXe['cateId']), 'dong_xe');
     }
 
+    if ($product->modelCar != null) {
+      
+      $listMX = $this->getListMauXe($metaInputArr['modelId']);
+      $mxList = array();
+      foreach ($listMX as $key => $mau) {
+        array_push($mxList, $mau->post_id);
+      }
+
+      update_field('cac_mau_xe', $mxList, $postID);
+    }
     $this->updateMetaField($metaArr, $postID);
 
     foreach ($product->vehicleImages as $key => $value) {
@@ -446,6 +467,17 @@ class ProductData
 
       add_row('car_color_noi_that', $row, $postID);
     }
+  }
+
+  public function getListMauXe($modelId) {
+    global $wpdb;
+
+    $total_record = $wpdb->get_results("SELECT * FROM `{$wpdb->prefix}postmeta` WHERE `meta_key`='modelId' AND `meta_value`={$modelId}");
+
+    if (count($total_record) > 0) {
+      return $total_record;
+    }
+    return null;
   }
 
   public function updateMetaField($metaArr, $postId)
@@ -1259,8 +1291,16 @@ class ProductData
     if ($product->modelCar != null) {
       $metaArr['kieu_xe'] = strtolower($product->modelCar->getModelName());
       $metaInputArr['modelId'] = $product->modelCar->getModelId();
-    }
 
+      $listMX = $this->getListMauXe($metaInputArr['modelId']);
+      $mxList = array();
+      foreach ($listMX as $key => $mau) {
+        if($mau->post_id != $idProd);
+          array_push($mxList, $mau->post_id);
+      }
+
+      update_field('cac_mau_xe', $mxList, $idProd);
+    }
     $metaArr['gia_tham_khao'] = $product->vehicleImages[0] ? $product->vehicleImages[0]->price : 0;
 
     $metaArr['anh_cover'] = Constants::instance()->downloadAImage($product->banner);
